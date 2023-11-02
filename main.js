@@ -1,5 +1,5 @@
-import { createCartLine, showCartContent } from './lib/ui.js';
-
+import { createCartLine, showCartContent, updateCartLine } from './lib/ui.js';
+import { validateInteger } from './lib/helpers.js';
 const products = [
   {
     id: 1,
@@ -24,22 +24,34 @@ const products = [
 
 /** Bæta vöru í körfu */
 function addProductToCart(product, quantity) {
-  // Hér þarf að finna `<tbody>` í töflu og setja `cartLine` inn í það
-  const cart = document.querySelector('.cart-content');
 
-  if (!cart) {
-    console.warn('fann ekki .cart');
+  const cartTableBodyElement = document.querySelector('.cart table tbody');
+  console.log('cartTableBodyElement :>> ', cartTableBodyElement);
+  if (!cartTableBodyElement) {
+    console.warn('fann ekki .cart table');
     return;
   }
   
-  // TODO hér þarf að athuga hvort lína fyrir vöruna sé þegar til
-  const cartLine = createCartLine(product, quantity);
-  cart.appendChild(cartLine);
 
-  // Sýna efni körfu
+  // Finna cart line hlut sem er þegar í körfu og verið er að bæta við
+  const existingCartLine = Array.from(cartTableBodyElement.children).find(
+    (cartLine) => cartLine.dataset.cartProductId === product.id
+  );
+
+  if (existingCartLine) {
+    // hlutur er í körfu, hækka quantity
+    const existingQuantity =  Number.parseInt(existingCartLine.dataset.quantity, 10);
+    const newQuantity = existingQuantity + quantity;
+    updateCartLine(existingCartLine, product, newQuantity);
+  } else {
+    // hlutur ekki í körfu, bæta við nýju cartLine
+    const cartLine = createCartLine(product, quantity);
+    cartTableBodyElement.appendChild(cartLine);
+  }
+
+  // Sýna innihald körfu og uppfæra
   showCartContent(true);
-
-  // TODO sýna/uppfæra samtölu körfu
+  updateCartLine(cartTableBodyElement, product, newQuantity);
 }
 
 function submitHandler(event) {
@@ -57,8 +69,20 @@ function submitHandler(event) {
 
   // TODO hér þarf að finna fjölda sem á að bæta við körfu með því að athuga
   // á input
-  const quantity = 1;
-
+  const quantityInputElement = parent.querySelector(
+    'input[name="quantity"]',
+  );
+  if(!quantityInputElement) {
+    console.warn('gat ekki fundið fjöldi input');
+    return;
+  }
+  // TODO hér þarf að finna fjölda sem á að bæta við körfu með því að athuga
+  // á input
+  const quantity = Number.parseInt(quantityInputElement.value ?? '', 10);
+  if (!validateInteger(quantity, 1, 99)) {
+    console.warn('Fjöldi ekki á bilinu [1, 99]');
+    return;
+  }
   // Bætum vöru í körfu (hér væri gott að bæta við athugun á því að varan sé til)
   addProductToCart(product, quantity);
 }
